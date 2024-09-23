@@ -1,7 +1,7 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/0561d92b4ecff39f769e/maintainability)](https://codeclimate.com/github/bdzhev/frontend-project-11/maintainability)
 # RSS Reader
 
->[!INFO]
+>[!NOTE]
 >
 > (Link [https://frontend-project-11-9kujtvsaa-bays-projects-fc5d16e1.vercel.app])
 >
