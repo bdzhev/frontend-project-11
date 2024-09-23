@@ -14,4 +14,7 @@ test-coverage:
 	npm test -- --coverage --coverageProvider=v8%
 
 build:
-	npm run build
+	NODE_ENV=production npx webpack
+
+develop:
+	npx webpack serve
