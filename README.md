@@ -1,15 +1,16 @@
-# 🚀 Welcome to your new awesome project!
+# RSS Reader
 
-This project has been created using **webpack-cli**, you can now run
+### Description
+RSS Reader is an app for reading RSS feeds in a comfortable way.
 
+>[!WARNING]
+> *Requirements*
+> NodeJS - 14.6 and newer
+
+### Installation
+Installation guide
+
+### Manual
 ```
-npm run build
+manual info
 ```
-
-or
-
-```
-yarn build
-```
-
-to bundle your application
