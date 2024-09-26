@@ -6,29 +6,25 @@ import * as i18n from 'i18next';
 import watch from './view.js';
 import ru from './locales/ru.js';
 import { uniqueId } from 'lodash';
+import { parseXML } from '../utils.js';
 
-// const timeout = 5000;
-// validate the input as rss link function
+const timeoutValue = 10000;
 const linkOrigin = 'https://allorigins.hexlet.app/get?disableCache=true&url=';
 // TO DO
 /* const updateContent = (state) => {
-  //make an axios request
 }; */
-const parseXML = (xmlData) => {
-  const parser = new DOMParser;
-  return parser.parseFromString(xmlData, "text/xml");
-};
 
 const getData = (url) => {
-  return axios.get(linkOrigin + String(url))
+  return axios.get(linkOrigin + String(url), { signal: AbortSignal.timeout(timeoutValue) })
     .then((response) => parseXML(response.data.contents))
-    .then((parsedDoc) => {
+    .then((doc) => {
       const feed = {
-        feedTitle: parsedDoc.querySelector('title').textContent,
-        description: parsedDoc.querySelector('description').textContent,
+        feedTitle: doc.querySelector('title').textContent,
+        description: doc.querySelector('description').textContent,
+        feedLink: url,
         id: uniqueId(),
       };
-      const posts = [...parsedDoc.querySelectorAll('item')]
+      const posts = [...doc.querySelectorAll('item')]
         .map((post) => ({
           title: post.querySelector('title').textContent,
           description: post.querySelector('description').textContent,
@@ -37,21 +33,15 @@ const getData = (url) => {
           feedId: feed.id,
         }));
       return { feed, posts };
-    })
-    .catch(() => {
-      return null;
     });  
 };
 
 const validate = (link, links) => {
   const schema = string()
-    .url('notURL') // Must be a url
-    .required('mustNotBeEmpty') // Not empty
-    .notOneOf(links, 'alreadyExists'); // Must not be in array
-
-  return schema.validate(link)
-    .then(() => null)
-    .catch((e) => e.message);
+    .url('notURL')
+    .required()
+    .notOneOf(links, 'alreadyExists');
+  return schema.validate(link);
 };
 
 const app = () => {
@@ -66,7 +56,7 @@ const app = () => {
     const elements = {
       form: document.querySelector('form'),
       formSubmit: document.querySelector('button[type="submit"]'),
-      errorHolder: document.querySelector('p.feedback.text-danger'),
+      feedback: document.querySelector('p.feedback'),
       formInput: document.querySelector('#url-input'),
     };
 
@@ -85,35 +75,33 @@ const app = () => {
         seenPostsIds: [], // save posts id
       }
     };
-
     const watchedState = watch(initialState, elements);
-    // const watchedState = onChange(initialState, view(initialState, elements));
 
-    // Add event listener to submit
     elements.form.addEventListener('submit', (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
       const url = formData.get('url').trim();
-      const links = watchedState.feeds;
-      watchedState.loadingProcess = { state: 'sending', error: null }; //lock the button and input
+      const links = watchedState.feeds.map((feed) => feed.feedLink);
+      watchedState.loadingProcess = { state: 'sending', error: null };
 
       validate(url, links)
-        .then((error) => {
-          if (error) {
-            watchedState.form = { isValid: false, error };
+        .then(() => getData(url))
+        .then((data) => {
+          const { feed, posts } = data;
+          watchedState.feeds.push(feed);
+          watchedState.posts.push(...posts);
+          watchedState.loadingProcess = { state: 'finished', error: null };
+          watchedState.form = { isValid: true, error: null };
+          console.log(watchedState);
+        })
+        .catch((err) => {
+          if (err.reponse || err.message === 'canceled') {
+            watchedState.loadingProcess = { state: 'filling', error: 'networkErr'};
+          } else if (err.message === 'notRSS') {
+            watchedState.loadingProcess = { state: 'filling', error: err.message };
           } else {
-            getData(url)
-              .then((data) => {
-                if (data) {
-                  const { feed, posts } = data;
-                  watchedState.feeds.push(feed);
-                  watchedState.posts.push(...posts);
-                  watchedState.loadingProcess = { state: 'finished', error: null }; // make the contents and feed render
-                  watchedState.form = { isValid: true, error: null };
-                } else {
-                  watchedState.loadingProcess = { state: 'filling', error: 'Network error' };
-                }
-              });
+            watchedState.loadingProcess = { state: 'filling', error: null };
+            watchedState.form = { isValid: false, error: err.message };
           }
         })
     });
