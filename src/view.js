@@ -1,5 +1,37 @@
 import onChange from 'on-change';
 
+const createPostElems = (posts, t) => posts.map((post) => {
+  const postCard = document.createElement('li');
+  postCard.classList.add(
+    'list-group-item',
+    'd-flex',
+    'justify-content-between',
+    'align-items-start',
+    'border-0',
+    'border-end-0',
+  );
+
+  const link = document.createElement('a');
+  link.setAttribute('href', post.link);
+  link.setAttribute('data-id', post.id);
+  link.setAttribute('target', '_blank');
+  link.setAttribute('rel', 'noopener noreferrer');
+  link.classList.add('fw-bold');
+  link.textContent = post.title;
+  postCard.append(link);
+
+  const button = document.createElement('button');
+  button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
+  button.setAttribute('type', 'button');
+  button.setAttribute('data-id', post.id);
+  button.setAttribute('data-bs-toggle', 'modal');
+  button.setAttribute('data-bs-target', '#modal');
+  button.textContent = t('viewPostButton');
+  postCard.append(button);
+
+  return postCard;
+});
+
 const clearFeedback = (elems) => {
   elems.feedback.classList.contains('text-danger')
     ? elems.feedback.classList.remove('text-danger')
@@ -16,6 +48,19 @@ const renderSeenPosts = (state) => {
   });
 };
 
+const renderNewPosts = (state, t, elements) => {
+  const postUl = document.querySelector('div.posts ul');
+  if (postUl) {
+    const existingPostsIds = new Set([...elements.postsContainer.querySelectorAll('li a')]
+      .map((postElem) => postElem.dataset.id));
+    const newPostsData = state.posts
+      .filter((post) => !existingPostsIds.has(post.id));
+    const newPostElems = createPostElems(newPostsData, t);
+    postUl.prepend(...newPostElems);
+    renderSeenPosts(state);
+  }
+};
+
 const handleModal = (state, activeId) => {
   const modalWindow = document.querySelector('.modal-dialog');
   const activePost = state.posts.find((post) => post.id === activeId);
@@ -25,18 +70,25 @@ const handleModal = (state, activeId) => {
     .textContent = activePost.description;
 };
 
-const handleFilling = (error, elems) => {
+const handleProcessError = (elems, error, t) => {
+  elems.feedback.classList.add('text-danger');
+  elems.feedback.textContent = t(`loadingStates.${error}`);
+  elems.formInput.removeAttribute('readonly');
+  elems.formSubmit.removeAttribute('disabled');
+};
+
+const handleFilling = (error, elems, t) => {
   if (error) {
-    handleProcessError(elements, value.error);
+    handleProcessError(elems, error, t);
   }
   elems.formInput.removeAttribute('readonly');
   elems.formSubmit.removeAttribute('disabled');
-}
+};
 
-const handleFormError = (elems, error) => {
+const handleFormError = (elems, error, t) => {
   elems.feedback.classList.add('text-danger');
   elems.formInput.classList.add('is-invalid');
-  elems.feedback.textContent = error;
+  elems.feedback.textContent = t(`formErrors.${error}`);
 };
 
 const handleFormValid = (elems) => {
@@ -53,10 +105,9 @@ const handleSending = (elems) => {
   elems.formSubmit.setAttribute('disabled', true);
 };
 
-const handleFinished = (elems, state) => {
+const handleFinished = (elems, state, t) => {
   elems.feedback.classList.add('text-success');
-  document.querySelector('p.feedback').classList.add('text-success');
-  elems.feedback.textContent = 'Success';
+  elems.feedback.textContent = t('loadingStates.finished');
   elems.formInput.removeAttribute('readonly');
   elems.formSubmit.removeAttribute('disabled');
 
@@ -69,49 +120,20 @@ const handleFinished = (elems, state) => {
 
   const postTitle = document.createElement('h2');
   postTitle.classList.add('card-title', 'h4');
-  postTitle.textContent = 'Посты'; // add i18
+  postTitle.textContent = t('postsTitle');
   postTitleBox.append(postTitle);
 
   const postUl = document.createElement('ul');
   postUl.classList.add('list-group', 'border-0', 'rounded-0');
 
-  const posts = state.posts.map((post) => {
-    const postCard = document.createElement('li');
-    postCard.classList.add(
-      'list-group-item',
-      'd-flex',
-      'justify-content-between',
-      'align-items-start',
-      'border-0',
-      'border-end-0',
-    );
+  const posts = createPostElems(state.posts, t);
 
-    const link = document.createElement('a');
-    link.setAttribute('href', post.link);
-    link.setAttribute('data-id', post.id);
-    link.setAttribute('target', '_blank');
-    link.setAttribute('rel', 'noopener noreferrer');
-    link.classList.add('fw-bold');
-    link.textContent = post.title;
-    postCard.append(link);
-
-    const button = document.createElement('button');
-    button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
-    button.setAttribute('type', 'button');
-    button.setAttribute('data-id', post.id);
-    button.setAttribute('data-bs-toggle', 'modal');
-    button.setAttribute('data-bs-target', '#modal');
-    button.textContent = 'Просмотр'; // i18n
-    postCard.append(button);
-
-    return postCard;
-  });
   postUl.append(...posts);
   postHolder.append(postTitleBox, postUl);
   elems.postsContainer.append(postHolder);
   renderSeenPosts(state);
-  // create feedblocks
 
+  elems.feedsContainer.innerHTML = '';
   const feedHolder = document.createElement('div');
   feedHolder.classList.add('card', 'border-0');
 
@@ -119,7 +141,7 @@ const handleFinished = (elems, state) => {
   feedTitleBox.classList.add('card-body');
   const feedTitle = document.createElement('h2');
   feedTitle.classList.add('card-title', 'h4');
-  feedTitle.textContent = 'Фиды'; // rename with i18
+  feedTitle.textContent = t('feedsTitle');
   feedTitleBox.append(feedTitle);
 
   const feedsUl = document.createElement('ul');
@@ -143,19 +165,12 @@ const handleFinished = (elems, state) => {
   elems.feedsContainer.append(feedHolder);
 };
 
-const handleProcessError = (elems, error) => {
-  elems.feedback.classList.add('text-danger');
-  elems.feedback.textContent = error;
-  elems.formInput.removeAttribute('readonly');
-  elems.formSubmit.removeAttribute('disabled');
-};
-
-const watch = (state, elements) => {
+const watch = (state, elements, { t }) => {
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'form':
         if (!value.isValid) {
-          handleFormError(elements, value.error);
+          handleFormError(elements, value.error, t);
         } else {
           handleFormValid(elements);
         }
@@ -166,17 +181,17 @@ const watch = (state, elements) => {
             handleSending(elements);
             break;
           case 'finished':
-            handleFinished(elements, state);
+            handleFinished(elements, state, t);
             break;
           case 'filling':
-            handleFilling(value.error, elements);
+            handleFilling(value.error, elements, t);
             break;
           default:
             break;
         }
         break;
       case 'posts':
-        // render posts from updatePosts function
+        renderNewPosts(state, t, elements);
         break;
       case 'ui.seenPostsIds':
         renderSeenPosts(state);

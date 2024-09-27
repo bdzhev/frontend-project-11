@@ -8,16 +8,23 @@ import watch from './view.js';
 import ru from './locales/ru.js';
 import parseXML from '../utils.js';
 
-const timeoutValue = 10000;
-const linkOrigin = 'https://allorigins.hexlet.app/get?disableCache=true&url=';
+const requestTimeout = 10000;
+const updateInterval = 5000;
+const makeReqLink = (link) => {
+  const linkOrigin = 'https://allorigins.hexlet.app/get?disableCache=true&url=';
+  return (linkOrigin + String(link));
+};
 
-
-// TO DO
-/* const updateContent = (state) => {
-}; */
+const makePost = (post, feedId) => ({
+  title: post.querySelector('title').textContent,
+  description: post.querySelector('description').textContent,
+  link: post.querySelector('link').textContent,
+  id: uniqueId(),
+  feedId,
+});
 
 const getData = (url) => axios
-  .get(linkOrigin + String(url), { signal: AbortSignal.timeout(timeoutValue) })
+  .get(makeReqLink(url), { signal: AbortSignal.timeout(requestTimeout) })
   .then((response) => parseXML(response.data.contents))
   .then((doc) => {
     const feed = {
@@ -27,26 +34,19 @@ const getData = (url) => axios
       id: uniqueId(),
     };
     const posts = [...doc.querySelectorAll('item')]
-      .map((post) => ({
-        title: post.querySelector('title').textContent,
-        description: post.querySelector('description').textContent,
-        link: post.querySelector('link').textContent,
-        id: uniqueId(),
-        feedId: feed.id,
-      }));
+      .map((post) => makePost(post, feed.id));
     return { feed, posts };
   });
 
 const validate = (link, links) => {
   const schema = string()
     .url('notURL')
-    .required()
+    .required('emptyField')
     .notOneOf(links, 'alreadyExists');
   return schema.validate(link);
 };
 
 const app = () => {
-  // Init the app
   const defaultLang = 'ru';
   const i18nInstance = i18n.createInstance();
   i18nInstance.init({
@@ -76,11 +76,11 @@ const app = () => {
       feeds: [],
       posts: [],
       ui: {
-        seenPostsIds: new Set(), // save posts id
+        seenPostsIds: new Set(),
         activeModalId: null,
       },
     };
-    const watchedState = watch(initialState, elements);
+    const watchedState = watch(initialState, elements, i18nInstance);
 
     elements.form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -95,11 +95,11 @@ const app = () => {
           const { feed, posts } = data;
           watchedState.feeds.unshift(feed);
           watchedState.posts.unshift(...posts);
-          watchedState.loadingProcess = { state: 'finished', error: null };
           watchedState.form = { isValid: true, error: null };
+          watchedState.loadingProcess = { state: 'finished', error: null };
         })
         .catch((err) => {
-          if (err.response || err.message === 'canceled') {
+          if (err.response || err.message === 'canceled' || err.message === 'Network Error') {
             watchedState.loadingProcess = { state: 'filling', error: 'networkErr' };
           } else if (err.message === 'notRSS') {
             watchedState.form = { isValid: true, error: null };
@@ -115,10 +115,40 @@ const app = () => {
       if (target.tagName === 'A') {
         watchedState.ui.seenPostsIds.add(target.dataset.id);
       }
-      if (target.tagName === 'BUTTON') { 
+      if (target.tagName === 'BUTTON') {
         watchedState.ui.activeModalId = target.dataset.id;
       }
     });
+
+    const updatePosts = (state) => {
+      const promises = state.feeds.map((feed) => axios
+        .get(makeReqLink(feed.feedLink))
+        .then((response) => parseXML(response.data.contents))
+        .then((doc) => {
+          const curId = feed.id;
+          const responsePosts = [...doc.querySelectorAll('item')];
+          const existingPostTitles = new Set(state.posts
+            .filter((post) => post.feedId === curId)
+            .map((post) => post.title));
+          if (responsePosts.length !== 0) {
+            const filteredPosts = responsePosts
+              .filter((liElem) => !existingPostTitles
+                .has(liElem.querySelector('title').textContent));
+            const newPosts = filteredPosts
+              .map((post) => makePost(post, feed.id));
+            state.posts.unshift(...newPosts);
+          }
+        })
+        .catch((err) => {
+          throw err;
+        }));
+
+      Promise.all(promises)
+        .finally(() => {
+          setTimeout(() => updatePosts(state), updateInterval);
+        });
+    };
+    updatePosts(watchedState);
   });
 };
 
