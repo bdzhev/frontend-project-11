@@ -94,6 +94,36 @@ const handleFinished = (elems, state) => {
   elems.postsContainer.append(postHolder);
   renderSeenPosts(state);
   // create feedblocks
+
+  const feedHolder = document.createElement('div');
+  feedHolder.classList.add('card', 'border-0');
+
+  const feedTitleBox = document.createElement('div');
+  feedTitleBox.classList.add('card-body');
+  const feedTitle = document.createElement('h2');
+  feedTitle.classList.add('card-title', 'h4');
+  feedTitle.textContent = 'Фиды'; // rename with i18
+  feedTitleBox.append(feedTitle);
+
+  const feedsUl = document.createElement('ul');
+  feedsUl.classList.add('list-group', 'border-0', 'rounded-0');
+  const feeds = state.feeds.map((feed) => {
+    const feedCard = document.createElement('li');
+    feedCard.classList.add('list-group-item', 'border-0', 'border-end-0');
+    const feedCardTitle = document.createElement('h3');
+    feedCardTitle.classList.add('h6', 'm-0');
+    feedCardTitle.textContent = feed.feedTitle;
+    const feedCardDesc = document.createElement('p');
+    feedCardDesc.classList.add('m-0', 'small', 'text-black-50');
+    feedCardDesc.textContent = feed.description;
+
+    feedCard.append(feedCardTitle, feedCardDesc);
+    return feedCard;
+  });
+  feedsUl.append(...feeds);
+
+  feedHolder.append(feedTitleBox, feedsUl);
+  elems.feedsContainer.append(feedHolder);
 };
 
 const handleProcessError = (elems, error) => {
