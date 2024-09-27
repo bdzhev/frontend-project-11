@@ -40,9 +40,10 @@ const createPostElems = (posts, t) => posts.map((post) => {
 });
 
 const clearFeedback = (elems) => {
-  elems.feedback.classList.contains('text-danger')
-    ? elems.feedback.classList.remove('text-danger')
-    : elems.feedback.classList.remove('text-success');
+  const feedbackElemClasses = elems.feedback.classList;
+  feedbackElemClasses.contains('text-danger')
+    ? feedbackElemClasses.remove('text-danger')
+    : feedbackElemClasses.remove('text-success');
 };
 
 const renderSeenPosts = (state) => {
@@ -78,8 +79,9 @@ const renderModal = (state, activeId) => {
 };
 
 const renderProcessError = (elems, error, t) => {
-  elems.feedback.classList.add('text-danger');
-  elems.feedback.textContent = t(`loadingStates.${error}`);
+  const feedbackElem = elems.feedback;
+  feedbackElem.classList.add('text-danger');
+  feedbackElem.textContent = t(`loadingStates.${error}`);
   elems.formInput.removeAttribute('readonly');
   elems.formSubmit.removeAttribute('disabled');
 };
@@ -93,16 +95,18 @@ const renderFillingState = (error, elems, t) => {
 };
 
 const renderFormError = (elems, error, t) => {
-  elems.feedback.classList.add('text-danger');
+  const feedbackElem = elems.feedback;
+  feedbackElem.classList.add('text-danger');
+  feedbackElem.textContent = t(`formErrors.${error}`);
   elems.formInput.classList.add('is-invalid');
-  elems.feedback.textContent = t(`formErrors.${error}`);
 };
 
 const renderFormValid = (elems) => {
   if (elems.formInput.classList.contains('is-invalid')) {
     elems.formInput.classList.remove('is-invalid');
   }
-  elems.feedback.textContent = '';
+  const feedbackElem = elems.feedback;
+  feedbackElem.textContent = '';
 };
 
 const renderSendingState = (elems) => {
@@ -127,7 +131,8 @@ const createFeedElem = (feed) => {
 };
 
 const createFeeds = (state, elems, t) => {
-  elems.feedsContainer.innerHTML = '';
+  const feedsContainer = elems.feedsContainer;
+  feedsContainer.innerHTML = '';
   const feedHolder = document.createElement('div');
   feedHolder.classList.add('card', 'border-0');
 
@@ -167,11 +172,13 @@ const createPostList = (postElems, t) => {
 };
 
 const renderFinishedState = (elems, state, t) => {
-  elems.feedback.classList.add('text-success');
-  elems.feedback.textContent = t('loadingStates.finished');
-  elems.formInput.removeAttribute('readonly');
+  const feedbackElem = elems.feedback;
+  feedbackElem.classList.add('text-success');
+  feedbackElem.textContent = t('loadingStates.finished');
   elems.formSubmit.removeAttribute('disabled');
-  elems.formInput.value = '';
+  const formInput = elems.formInput;
+  formInput.removeAttribute('readonly');
+  formInput.value = '';
 
   const postsElems = createPostElems(state.posts, t);
   const postHolder = createPostList(postsElems, t);
