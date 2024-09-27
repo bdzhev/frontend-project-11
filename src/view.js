@@ -171,6 +171,7 @@ const renderFinishedState = (elems, state, t) => {
   elems.feedback.textContent = t('loadingStates.finished');
   elems.formInput.removeAttribute('readonly');
   elems.formSubmit.removeAttribute('disabled');
+  elems.formInput.value = '';
 
   const postsElems = createPostElems(state.posts, t);
   const postHolder = createPostList(postsElems, t);
