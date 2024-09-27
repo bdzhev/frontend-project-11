@@ -116,6 +116,7 @@ const app = () => {
         watchedState.ui.seenPostsIds.add(target.dataset.id);
       }
       if (target.tagName === 'BUTTON') {
+        watchedState.ui.seenPostsIds.add(target.dataset.id);
         watchedState.ui.activeModalId = target.dataset.id;
       }
     });
