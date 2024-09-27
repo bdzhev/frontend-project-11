@@ -16,6 +16,23 @@ const renderSeenPosts = (state) => {
   });
 };
 
+const handleModal = (state, activeId) => {
+  const modalWindow = document.querySelector('.modal-dialog');
+  const activePost = state.posts.find((post) => post.id === activeId);
+  modalWindow.querySelector('.modal-title')
+    .textContent = activePost.title;
+  modalWindow.querySelector('.modal-body')
+    .textContent = activePost.description;
+};
+
+const handleFilling = (error, elems) => {
+  if (error) {
+    handleProcessError(elements, value.error);
+  }
+  elems.formInput.removeAttribute('readonly');
+  elems.formSubmit.removeAttribute('disabled');
+}
+
 const handleFormError = (elems, error) => {
   elems.feedback.classList.add('text-danger');
   elems.formInput.classList.add('is-invalid');
@@ -152,11 +169,7 @@ const watch = (state, elements) => {
             handleFinished(elements, state);
             break;
           case 'filling':
-            if (value.error) {
-              handleProcessError(elements, value.error);
-            }
-            elements.formInput.removeAttribute('readonly');
-            elements.formSubmit.removeAttribute('disabled');
+            handleFilling(value.error, elements);
             break;
           default:
             break;
@@ -167,6 +180,9 @@ const watch = (state, elements) => {
         break;
       case 'ui.seenPostsIds':
         renderSeenPosts(state);
+        break;
+      case 'ui.activeModalId':
+        handleModal(state, value);
         break;
       default:
         break;

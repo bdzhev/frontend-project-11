@@ -10,6 +10,8 @@ import parseXML from '../utils.js';
 
 const timeoutValue = 10000;
 const linkOrigin = 'https://allorigins.hexlet.app/get?disableCache=true&url=';
+
+
 // TO DO
 /* const updateContent = (state) => {
 }; */
@@ -75,7 +77,7 @@ const app = () => {
       posts: [],
       ui: {
         seenPostsIds: new Set(), // save posts id
-        activePostId: null,
+        activeModalId: null,
       },
     };
     const watchedState = watch(initialState, elements);
@@ -112,7 +114,9 @@ const app = () => {
     elements.postsContainer.addEventListener('click', ({ target }) => {
       if (target.tagName === 'A') {
         watchedState.ui.seenPostsIds.add(target.dataset.id);
-        console.log(watchedState);
+      }
+      if (target.tagName === 'BUTTON') { 
+        watchedState.ui.activeModalId = target.dataset.id;
       }
     });
   });
