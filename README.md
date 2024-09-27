@@ -17,9 +17,7 @@ RSS Reader is an app for reading RSS feeds in a comfortable way.
 > NodeJS - 18.0.0 and newer
 
 ### Installation
-Installation guide
-
-### Manual
+Install necessary libraries
 ```
-manual info
+make install
 ```
