@@ -41,9 +41,11 @@ const createPostElems = (posts, t) => posts.map((post) => {
 
 const clearFeedback = (elems) => {
   const feedbackElemClasses = elems.feedback.classList;
-  feedbackElemClasses.contains('text-danger')
-    ? (feedbackElemClasses.remove('text-danger'))
-    : (feedbackElemClasses.remove('text-success'));
+  if (feedbackElemClasses.contains('text-danger')) {
+    (feedbackElemClasses.remove('text-danger'));
+  } else {
+    (feedbackElemClasses.remove('text-success'));
+  }
 };
 
 const renderSeenPosts = (state) => {
