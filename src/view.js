@@ -111,7 +111,7 @@ const renderFormValid = (elems) => {
 
 const renderSendingState = (elems) => {
   clearFeedback(elems);
-  const { feedback }= elems;
+  const { feedback } = elems;
   feedback.textContent = '';
   elems.formInput.setAttribute('readonly', true);
   elems.formSubmit.setAttribute('disabled', true);
