@@ -11,12 +11,13 @@ const createPostButton = (id, t) => {
   return button;
 };
 
-const createPostLink = (url, id, title) => {
+const createPostLink = (url, id, title, feedId) => {
   const link = document.createElement('a');
   link.setAttribute('href', url);
   link.setAttribute('data-id', id);
   link.setAttribute('target', '_blank');
   link.setAttribute('rel', 'noopener noreferrer');
+  link.setAttribute('id', feedId);
   link.classList.add('fw-bold');
   link.textContent = title;
   return link;
@@ -32,7 +33,7 @@ const createPostElems = (posts, t) => posts.map((post) => {
     'border-0',
     'border-end-0',
   );
-  const link = createPostLink(post.link, post.id, post.title);
+  const link = createPostLink(post.link, post.id, post.title, post.feedId);
   const button = createPostButton(post.id, t);
   postCard.append(link, button);
 

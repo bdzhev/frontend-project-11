@@ -9,4 +9,19 @@ const parseXML = (xmlData) => {
   }
 };
 
-export default parseXML;
+const parseRSS = (xmlData) => {
+  const parsedDoc = parseXML(xmlData);
+  const feedData = {
+    feedTitle: parsedDoc.querySelector('title').textContent,
+    description: parsedDoc.querySelector('description').textContent,
+  };
+  const postsData = [...parsedDoc.querySelectorAll('item')]
+    .map((post) => ({
+      title: post.querySelector('title').textContent,
+      description: post.querySelector('description').textContent,
+      link: post.querySelector('link').textContent,
+    }));
+  return { feedData, postsData };
+};
+
+export default parseRSS;

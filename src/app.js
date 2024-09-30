@@ -4,39 +4,25 @@ import * as i18n from 'i18next';
 import { uniqueId } from 'lodash';
 import watch from './view.js';
 import resources from './locales/index.js';
-import parseXML from './parser.js';
+import parseRSS from './parser.js';
 
 const requestTimeout = 10000;
-const updateInterval = 5000;
+const newPostCheckInterval = 5000;
 const defaultLang = 'ru';
 
 const makeReqLink = (link) => {
   const linkOrigin = new URL('https://allorigins.hexlet.app/get');
-  linkOrigin.searchParams.set('disableCache', 'true')
+  linkOrigin.searchParams.set('disableCache', 'true');
   linkOrigin.searchParams.set('url', `${String(link)}`);
   return linkOrigin;
 };
 
-const makePost = (post, feedId) => ({
-  title: post.querySelector('title').textContent,
-  description: post.querySelector('description').textContent,
-  link: post.querySelector('link').textContent,
-  id: uniqueId(),
-  feedId,
-});
-
 const getData = (url) => axios
   .get(makeReqLink(url), { signal: AbortSignal.timeout(requestTimeout) })
-  .then((response) => parseXML(response.data.contents))
-  .then((doc) => {
-    const feed = {
-      feedTitle: doc.querySelector('title').textContent,
-      description: doc.querySelector('description').textContent,
-      feedLink: url,
-      id: uniqueId(),
-    };
-    const posts = [...doc.querySelectorAll('item')]
-      .map((post) => makePost(post, feed.id));
+  .then((response) => parseRSS(response.data.contents))
+  .then(({ feedData, postsData }) => {
+    const feed = { ...feedData, id: uniqueId(), feedLink: url };
+    const posts = postsData.map((post) => ({ ...post, id: uniqueId(), feedId: feed.id }));
     return { feed, posts };
   });
 
@@ -123,21 +109,16 @@ const app = () => {
     const updatePosts = (state) => {
       const promises = state.feeds.map((feed) => axios
         .get(makeReqLink(feed.feedLink))
-        .then((response) => parseXML(response.data.contents))
-        .then((doc) => {
-          const curId = feed.id;
-          const responsePosts = [...doc.querySelectorAll('item')];
+        .then((response) => parseRSS(response.data.contents))
+        .then(({ postsData }) => {
+          const feedId = feed.id;
           const existingPostTitles = new Set(state.posts
-            .filter((post) => post.feedId === curId)
+            .filter((post) => post.feedId === feedId)
             .map((post) => post.title));
-          if (responsePosts.length !== 0) {
-            const filteredPosts = responsePosts
-              .filter((liElem) => !existingPostTitles
-                .has(liElem.querySelector('title').textContent));
-            const newPosts = filteredPosts
-              .map((post) => makePost(post, feed.id));
-            state.posts.unshift(...newPosts);
-          }
+          const newPosts = postsData
+            .filter(({ title }) => !existingPostTitles.has(title))
+            .map((post) => ({ ...post, feedId, id: uniqueId() }));
+          state.posts.unshift(...newPosts);
         })
         .catch((err) => {
           throw err;
@@ -145,7 +126,7 @@ const app = () => {
 
       Promise.all(promises)
         .finally(() => {
-          setTimeout(() => updatePosts(state), updateInterval);
+          setTimeout(() => updatePosts(state), newPostCheckInterval);
         });
     };
     updatePosts(watchedState);
