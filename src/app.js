@@ -11,8 +11,10 @@ const updateInterval = 5000;
 const defaultLang = 'ru';
 
 const makeReqLink = (link) => {
-  const linkOrigin = 'https://allorigins.hexlet.app/get?disableCache=true&url=';
-  return (linkOrigin + String(link));
+  const linkOrigin = new URL('https://allorigins.hexlet.app/get');
+  linkOrigin.searchParams.set('disableCache', 'true')
+  linkOrigin.searchParams.set('url', `${String(link)}`);
+  return linkOrigin;
 };
 
 const makePost = (post, feedId) => ({
