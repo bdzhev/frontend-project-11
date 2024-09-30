@@ -1,7 +1,7 @@
 {
   "name": "@hexlet/code",
   "version": "1.0.0",
-  "description": "My webpack project",
+  "description": "An application for reading content from multiple RSS sources",
   "main": "index.js",
   "type": "module",
   "scripts": {

@@ -5,7 +5,6 @@ export default {
       notURL: 'Ссылка должна быть валидным URL',
       alreadyExists: 'RSS уже существует',
       emptyField: 'Не должно быть пустым',
-
     },
     loadingStates: {
       finished: 'RSS успешно загружен',
