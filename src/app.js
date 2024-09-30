@@ -1,15 +1,15 @@
-import './styles.scss';
-import 'bootstrap';
 import { string } from 'yup';
 import axios from 'axios';
 import * as i18n from 'i18next';
 import { uniqueId } from 'lodash';
 import watch from './view.js';
-import ru from './locales/ru.js';
-import parseXML from '../utils.js';
+import resources from './locales/index.js';
+import parseXML from './parser.js';
 
 const requestTimeout = 10000;
 const updateInterval = 5000;
+const defaultLang = 'ru';
+
 const makeReqLink = (link) => {
   const linkOrigin = 'https://allorigins.hexlet.app/get?disableCache=true&url=';
   return (linkOrigin + String(link));
@@ -47,12 +47,11 @@ const validate = (link, links) => {
 };
 
 const app = () => {
-  const defaultLang = 'ru';
   const i18nInstance = i18n.createInstance();
   i18nInstance.init({
     lng: defaultLang,
     debug: true,
-    resources: { ru },
+    resources,
   }).then(() => {
     const elements = {
       form: document.querySelector('form'),
@@ -80,6 +79,7 @@ const app = () => {
         activeModalId: null,
       },
     };
+
     const watchedState = watch(initialState, elements, i18nInstance);
 
     elements.form.addEventListener('submit', (e) => {
@@ -101,9 +101,6 @@ const app = () => {
         .catch((err) => {
           if (err.response || err.message === 'canceled' || err.message === 'Network Error') {
             watchedState.loadingProcess = { state: 'filling', error: 'networkErr' };
-          } else if (err.message === 'notRSS') {
-            watchedState.form = { isValid: true, error: null };
-            watchedState.loadingProcess = { state: 'filling', error: err.message };
           } else {
             watchedState.form = { isValid: false, error: err.message };
             watchedState.loadingProcess = { state: 'filling', error: null };
