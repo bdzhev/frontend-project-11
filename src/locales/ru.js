@@ -1,6 +1,5 @@
 export default {
   translation: {
-    title: 'RSS аггрегатор',
     formErrors: {
       notURL: 'Ссылка должна быть валидным URL',
       alreadyExists: 'RSS уже существует',
@@ -16,3 +15,4 @@ export default {
     postsTitle: 'Посты',
   },
 };
+
