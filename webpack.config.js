@@ -3,6 +3,7 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 
 export default {
   mode: process.env.NODE_ENV || 'development',
+  entry: './src/index.js',
   module: {
     rules: [
       {
@@ -18,20 +19,18 @@ export default {
       {
         test: /\.css$/,
         use: [
-          'style-loader',
+          MiniCssExtractPlugin.loader,
           'css-loader',
           'postcss-loader',
-          MiniCssExtractPlugin.loader,
         ],
       },
       {
         test: /\.scss$/,
         use: [
-          'style-loader',
+          MiniCssExtractPlugin.loader,
           'css-loader',
           'sass-loader',
           'postcss-loader',
-          MiniCssExtractPlugin.loader,
         ],
       },
       {
