@@ -10,6 +10,31 @@ const requestTimeout = 10000;
 const newPostCheckInterval = 5000;
 const defaultLang = 'ru';
 
+const getErrorType = (error) => {
+  if (error.isAxiosError) {
+    return 'networkErr';
+  }
+  if (error.isParserError) {
+    return error.message;
+  }
+  return 'unknownErr';
+};
+
+const handleError = (errorCode, state) => {
+  switch (errorCode) {
+    case 'networkErr':
+      state.loadingProcess = { state: 'filling', error: errorCode };
+      break;
+    case 'notRSS':
+      state.loadingProcess = { state: 'filling', error: null };
+      state.form = { isValid: false, error: errorCode };
+      break;
+    default:
+      state.loadingProcess = { state: 'filling', error: null };
+      console.log('Unknown error');
+  }
+};
+
 const makeReqLink = (link) => {
   const linkOrigin = new URL('https://allorigins.hexlet.app/get');
   linkOrigin.searchParams.set('disableCache', 'true');
@@ -31,7 +56,9 @@ const validate = (link, links) => {
     .url('notURL')
     .required('emptyField')
     .notOneOf(links, 'alreadyExists');
-  return schema.validate(link);
+  return schema.validate(link)
+    .then(() => null)
+    .catch((error) => error);
 };
 
 const app = () => {
@@ -74,25 +101,28 @@ const app = () => {
       e.preventDefault();
       const formData = new FormData(e.target);
       const link = formData.get('url').trim();
-      const links = watchedState.feeds.map((feed) => feed.feedLink);
+      const links = watchedState.feeds.length !== 0
+        ? watchedState.feeds.map((feed) => feed.feedLink)
+        : [];
       watchedState.loadingProcess = { state: 'sending', error: null };
 
       validate(link, links)
-        .then(() => getData(link))
-        .then((data) => {
-          const { feed, posts } = data;
-          watchedState.feeds.unshift(feed);
-          watchedState.posts.unshift(...posts);
-          watchedState.form = { isValid: true, error: null };
-          watchedState.loadingProcess = { state: 'finished', error: null };
-        })
-        .catch((error) => {
-          if (error.isAxiosError) {
-            watchedState.loadingProcess = { state: 'filling', error: 'networkErr' };
-          } else {
-            watchedState.form = { isValid: false, error: error.message };
+        .then((error) => {
+          if (error) {
             watchedState.loadingProcess = { state: 'filling', error: null };
+            watchedState.form = { isValid: false, error: error.message };
+            return;
           }
+          getData(link)
+            .then(({ feed, posts }) => {
+              watchedState.feeds.unshift(feed);
+              watchedState.posts.unshift(...posts);
+              watchedState.form = { isValid: true, error: null };
+              watchedState.loadingProcess = { state: 'finished', error: null };
+            })
+            .catch((responseError) => {
+              handleError(getErrorType(responseError), watchedState);
+            });
         });
     });
 
@@ -116,7 +146,7 @@ const app = () => {
           state.posts.unshift(...newPosts);
         })
         .catch((error) => {
-          throw error;
+          console.log(error);
         }));
 
       Promise.all(promises)
