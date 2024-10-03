@@ -1,21 +1,18 @@
-const parseXML = (xmlData) => {
+const parseRSS = (xmlData) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlData, 'text/xml');
   const errorNode = doc.querySelector('parsererror');
   if (errorNode) {
-    throw new Error('notRSS');
-  } else {
-    return doc;
+    const error = new Error('notRSS');
+    error.isParserError = true;
+    error.data = doc;
+    throw error;
   }
-};
-
-const parseRSS = (xmlData) => {
-  const parsedDoc = parseXML(xmlData);
   const feedData = {
-    feedTitle: parsedDoc.querySelector('title').textContent,
-    description: parsedDoc.querySelector('description').textContent,
+    feedTitle: doc.querySelector('title').textContent,
+    description: doc.querySelector('description').textContent,
   };
-  const postsData = [...parsedDoc.querySelectorAll('item')]
+  const postsData = [...doc.querySelectorAll('item')]
     .map((post) => ({
       title: post.querySelector('title').textContent,
       description: post.querySelector('description').textContent,
