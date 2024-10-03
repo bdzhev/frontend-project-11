@@ -3,7 +3,7 @@ const parseRSS = (xmlData) => {
   const doc = parser.parseFromString(xmlData, 'text/xml');
   const errorNode = doc.querySelector('parsererror');
   if (errorNode) {
-    const error = new Error('notRSS');
+    const error = new Error(errorNode.textContent);
     error.isParserError = true;
     error.data = doc;
     throw error;

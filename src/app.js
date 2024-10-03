@@ -10,29 +10,14 @@ const requestTimeout = 10000;
 const newPostCheckInterval = 5000;
 const defaultLang = 'ru';
 
-const getErrorType = (error) => {
+const getErrorCode = (error) => {
   if (error.isAxiosError) {
     return 'networkErr';
   }
   if (error.isParserError) {
-    return error.message;
+    return 'notRSS';
   }
   return 'unknownErr';
-};
-
-const handleError = (errorCode, state) => {
-  switch (errorCode) {
-    case 'networkErr':
-      state.loadingProcess = { state: 'filling', error: errorCode };
-      break;
-    case 'notRSS':
-      state.loadingProcess = { state: 'filling', error: null };
-      state.form = { isValid: false, error: errorCode };
-      break;
-    default:
-      state.loadingProcess = { state: 'filling', error: null };
-      console.log('Unknown error');
-  }
 };
 
 const makeReqLink = (link) => {
@@ -121,7 +106,19 @@ const app = () => {
               watchedState.loadingProcess = { state: 'finished', error: null };
             })
             .catch((responseError) => {
-              handleError(getErrorType(responseError), watchedState);
+              const errorCode = getErrorCode(responseError);
+              switch (errorCode) {
+                case 'networkErr':
+                  watchedState.loadingProcess = { state: 'filling', error: errorCode };
+                  break;
+                case 'notRSS':
+                  watchedState.loadingProcess = { state: 'filling', error: null };
+                  watchedState.form = { isValid: false, error: errorCode };
+                  break;
+                default:
+                  watchedState.loadingProcess = { state: 'filling', error: null };
+                  console.log('Unknown error');
+              }
             });
         });
     });
