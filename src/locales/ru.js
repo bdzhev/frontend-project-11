@@ -9,6 +9,7 @@ export default {
     loadingStates: {
       finished: 'RSS успешно загружен',
       networkErr: 'Ошибка сети',
+      unknownErr: 'Неизвестная ошибка',
     },
     viewPostButton: 'Просмотр',
     feedsTitle: 'Фиды',
