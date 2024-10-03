@@ -13,15 +13,15 @@ const defaultLang = 'ru';
 const makeReqLink = (link) => {
   const linkOrigin = new URL('https://allorigins.hexlet.app/get');
   linkOrigin.searchParams.set('disableCache', 'true');
-  linkOrigin.searchParams.set('url', `${String(link)}`);
+  linkOrigin.searchParams.set('url', link);
   return linkOrigin;
 };
 
-const getData = (url) => axios
-  .get(makeReqLink(url), { signal: AbortSignal.timeout(requestTimeout) })
+const getData = (link) => axios
+  .get(makeReqLink(link), { signal: AbortSignal.timeout(requestTimeout) })
   .then((response) => parseRSS(response.data.contents))
   .then(({ feedData, postsData }) => {
-    const feed = { ...feedData, id: uniqueId(), feedLink: url };
+    const feed = { ...feedData, id: uniqueId(), feedLink: link };
     const posts = postsData.map((post) => ({ ...post, id: uniqueId(), feedId: feed.id }));
     return { feed, posts };
   });
@@ -73,12 +73,12 @@ const app = () => {
     elements.form.addEventListener('submit', (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
-      const url = formData.get('url').trim();
+      const link = formData.get('url').trim();
       const links = watchedState.feeds.map((feed) => feed.feedLink);
       watchedState.loadingProcess = { state: 'sending', error: null };
 
-      validate(url, links)
-        .then(() => getData(url))
+      validate(link, links)
+        .then(() => getData(link))
         .then((data) => {
           const { feed, posts } = data;
           watchedState.feeds.unshift(feed);
@@ -86,24 +86,19 @@ const app = () => {
           watchedState.form = { isValid: true, error: null };
           watchedState.loadingProcess = { state: 'finished', error: null };
         })
-        .catch((err) => {
-          if (err.response || err.message === 'canceled' || err.message === 'Network Error') {
+        .catch((error) => {
+          if (error.isAxiosError) {
             watchedState.loadingProcess = { state: 'filling', error: 'networkErr' };
           } else {
-            watchedState.form = { isValid: false, error: err.message };
+            watchedState.form = { isValid: false, error: error.message };
             watchedState.loadingProcess = { state: 'filling', error: null };
           }
         });
     });
 
     elements.postsContainer.addEventListener('click', ({ target }) => {
-      if (target.tagName === 'A') {
-        watchedState.ui.seenPostsIds.add(target.dataset.id);
-      }
-      if (target.tagName === 'BUTTON') {
-        watchedState.ui.seenPostsIds.add(target.dataset.id);
-        watchedState.ui.activeModalId = target.dataset.id;
-      }
+      watchedState.ui.seenPostsIds.add(target.dataset.id);
+      watchedState.ui.activeModalId = target.dataset.id;
     });
 
     const updatePosts = (state) => {
@@ -120,8 +115,8 @@ const app = () => {
             .map((post) => ({ ...post, feedId, id: uniqueId() }));
           state.posts.unshift(...newPosts);
         })
-        .catch((err) => {
-          throw err;
+        .catch((error) => {
+          throw error;
         }));
 
       Promise.all(promises)
