@@ -82,7 +82,7 @@ const app = () => {
           watchedState.loadingProcess = { state: 'filling', error: null };
           watchedState.form = { isValid: false, error: errorCode };
           break;
-        case 'unkownErr':
+        case 'unknownErr':
           watchedState.loadingProcess = { state: 'filling', error: null };
           console.log('Unknown error');
           break;
