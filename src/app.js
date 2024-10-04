@@ -27,15 +27,6 @@ const makeReqLink = (link) => {
   return linkOrigin;
 };
 
-const getData = (link) => axios
-  .get(makeReqLink(link), { signal: AbortSignal.timeout(requestTimeout) })
-  .then((response) => parseRSS(response.data.contents))
-  .then(({ feedData, postsData }) => {
-    const feed = { ...feedData, id: uniqueId(), feedLink: link };
-    const posts = postsData.map((post) => ({ ...post, id: uniqueId(), feedId: feed.id }));
-    return { feed, posts };
-  });
-
 const validate = (link, links) => {
   const schema = string()
     .url('notURL')
@@ -82,6 +73,40 @@ const app = () => {
 
     const watchedState = watch(initialState, elements, i18nInstance);
 
+    const handleResponseError = (errorCode) => {
+      switch (errorCode) {
+        case 'networkErr':
+          watchedState.loadingProcess = { state: 'filling', error: errorCode };
+          break;
+        case 'notRSS':
+          watchedState.loadingProcess = { state: 'filling', error: null };
+          watchedState.form = { isValid: false, error: errorCode };
+          break;
+        case 'unkownErr':
+          watchedState.loadingProcess = { state: 'filling', error: null };
+          console.log('Unknown error');
+          break;
+        default:
+          console.log(`Unknwon error code ${errorCode}`);
+      }
+    };
+
+    const getData = (link) => axios
+      .get(makeReqLink(link), { signal: AbortSignal.timeout(requestTimeout) })
+      .then((response) => {
+        const { feedData, postsData } = parseRSS(response.data.contents);
+        const feed = { ...feedData, id: uniqueId(), feedLink: link };
+        const posts = postsData.map((post) => ({ ...post, id: uniqueId(), feedId: feed.id }));
+        watchedState.feeds.unshift(feed);
+        watchedState.posts.unshift(...posts);
+        watchedState.form = { isValid: true, error: null };
+        watchedState.loadingProcess = { state: 'finished', error: null };
+      })
+      .catch((responseError) => {
+        const errorCode = getErrorCode(responseError);
+        handleResponseError(errorCode);
+      });
+
     elements.form.addEventListener('submit', (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
@@ -98,28 +123,7 @@ const app = () => {
             watchedState.form = { isValid: false, error: error.message };
             return;
           }
-          getData(link)
-            .then(({ feed, posts }) => {
-              watchedState.feeds.unshift(feed);
-              watchedState.posts.unshift(...posts);
-              watchedState.form = { isValid: true, error: null };
-              watchedState.loadingProcess = { state: 'finished', error: null };
-            })
-            .catch((responseError) => {
-              const errorCode = getErrorCode(responseError);
-              switch (errorCode) {
-                case 'networkErr':
-                  watchedState.loadingProcess = { state: 'filling', error: errorCode };
-                  break;
-                case 'notRSS':
-                  watchedState.loadingProcess = { state: 'filling', error: null };
-                  watchedState.form = { isValid: false, error: errorCode };
-                  break;
-                default:
-                  watchedState.loadingProcess = { state: 'filling', error: null };
-                  console.log('Unknown error');
-              }
-            });
+          getData(link);
         });
     });
 
