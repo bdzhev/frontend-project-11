@@ -81,7 +81,7 @@ const renderModal = (state, activeId) => {
     .textContent = activePost.description;
 };
 
-const renderProcessError = (elems, error, t) => {
+const renderErrorStatus = (error, elems, t) => {
   const feedbackElem = elems.feedback;
   feedbackElem.classList.add('text-danger');
   feedbackElem.textContent = t(`loadingStates.${error}`);
@@ -89,10 +89,7 @@ const renderProcessError = (elems, error, t) => {
   elems.formSubmit.removeAttribute('disabled');
 };
 
-const renderFillingState = (error, elems, t) => {
-  if (error) {
-    renderProcessError(elems, error, t);
-  }
+const renderIdleStatus = (elems) => {
   elems.formInput.removeAttribute('readonly');
   elems.formSubmit.removeAttribute('disabled');
 };
@@ -112,7 +109,7 @@ const renderFormValid = (elems) => {
   feedbackElem.textContent = '';
 };
 
-const renderSendingState = (elems) => {
+const renderSendingStatus = (elems) => {
   clearFeedback(elems);
   const { feedback } = elems;
   feedback.textContent = '';
@@ -175,10 +172,10 @@ const createPostList = (postElems, t) => {
   return postHolder;
 };
 
-const renderFinishedState = (elems, state, t) => {
+const renderSuccessStatus = (elems, state, t) => {
   const feedbackElem = elems.feedback;
   feedbackElem.classList.add('text-success');
-  feedbackElem.textContent = t('loadingStates.finished');
+  feedbackElem.textContent = t('loadingStates.success');
   elems.formSubmit.removeAttribute('disabled');
   const { formInput } = elems;
   formInput.removeAttribute('readonly');
@@ -196,23 +193,24 @@ const renderFinishedState = (elems, state, t) => {
 };
 
 const handleForm = (elems, value, t) => {
-  if (!value.isValid) {
-    renderFormError(elems, value.error, t);
-  } else {
-    renderFormValid(elems);
-  }
+  !(value.isValid)
+    ? renderFormError(elems, value.error, t)
+    : renderFormValid(elems);
 };
 
 const handleLoadingState = (value, elems, state, t) => {
-  switch (value.state) {
+  switch (value.status) {
     case 'sending':
-      renderSendingState(elems);
+      renderSendingStatus(elems);
       break;
-    case 'finished':
-      renderFinishedState(elems, state, t);
+    case 'success':
+      renderSuccessStatus(elems, state, t);
       break;
-    case 'filling':
-      renderFillingState(value.error, elems, t);
+    case 'idle':
+      renderIdleStatus(elems);
+      break;
+    case 'error':
+      renderErrorStatus(value.error, elems, t);
       break;
     default:
       break;

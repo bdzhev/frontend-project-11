@@ -8,7 +8,15 @@ import parseRSS from './parser.js';
 
 const requestTimeout = 10000;
 const newPostCheckInterval = 5000;
+const newPostCheckTimeout = 10000;
 const defaultLang = 'ru';
+
+const makeReqLink = (link) => {
+  const linkOrigin = new URL('https://allorigins.hexlet.app/get');
+  linkOrigin.searchParams.set('disableCache', 'true');
+  linkOrigin.searchParams.set('url', link);
+  return linkOrigin;
+};
 
 const getErrorCode = (error) => {
   if (error.isAxiosError) {
@@ -20,11 +28,50 @@ const getErrorCode = (error) => {
   return 'unknownErr';
 };
 
-const makeReqLink = (link) => {
-  const linkOrigin = new URL('https://allorigins.hexlet.app/get');
-  linkOrigin.searchParams.set('disableCache', 'true');
-  linkOrigin.searchParams.set('url', link);
-  return linkOrigin;
+const makeAbortSignal = (timeoutValue) => ({ signal: AbortSignal.timeout(timeoutValue) });
+
+const getData = (link, state) => axios
+  .get(makeReqLink(link), makeAbortSignal(requestTimeout))
+  .then((response) => {
+    const { feedData, postsData } = parseRSS(response.data.contents);
+    const feed = { ...feedData, id: uniqueId(), feedLink: link };
+    const posts = postsData.map((post) => ({ ...post, id: uniqueId(), feedId: feed.id }));
+    // eslint-disable-next-line no-param-reassign
+    state.feeds = [feed, ...state.feeds];
+    // eslint-disable-next-line no-param-reassign
+    state.posts = [...posts, ...state.posts];
+    // eslint-disable-next-line no-param-reassign
+    state.loadingProcess = { status: 'success', error: null };
+  })
+  .catch((responseError) => {
+    // eslint-disable-next-line no-param-reassign
+    state.loadingProcess = {
+      status: 'error',
+      error: getErrorCode(responseError),
+    };
+  });
+
+const updatePosts = (state) => {
+  const promises = state.feeds.map((feed) => axios
+    .get(makeReqLink(feed.feedLink), makeAbortSignal(newPostCheckTimeout))
+    .then((response) => {
+      const { postsData } = parseRSS(response.data.contents);
+      const feedId = feed.id;
+      const existingPostTitles = new Set(state.posts
+        .filter((post) => post.feedId === feedId)
+        .map((post) => post.title));
+      const newPosts = postsData
+        .filter(({ title }) => !existingPostTitles.has(title))
+        .map((post) => ({ ...post, feedId, id: uniqueId() }));
+      // eslint-disable-next-line no-param-reassign
+      state.posts = [...newPosts, ...state.posts];
+    })
+    .catch(() => {}));
+
+  Promise.all(promises)
+    .finally(() => {
+      setTimeout(() => updatePosts(state), newPostCheckInterval);
+    });
 };
 
 const validate = (link, links) => {
@@ -56,7 +103,7 @@ const app = () => {
 
     const initialState = {
       loadingProcess: {
-        state: 'loading',
+        status: 'idle',
         error: null,
       },
       form: {
@@ -73,88 +120,32 @@ const app = () => {
 
     const watchedState = watch(initialState, elements, i18nInstance);
 
-    const handleResponseError = (errorCode) => {
-      switch (errorCode) {
-        case 'networkErr':
-          watchedState.loadingProcess = { state: 'filling', error: errorCode };
-          break;
-        case 'notRSS':
-          watchedState.loadingProcess = { state: 'filling', error: null };
-          watchedState.form = { isValid: false, error: errorCode };
-          break;
-        case 'unknownErr':
-          watchedState.loadingProcess = { state: 'filling', error: null };
-          console.log('Unknown error');
-          break;
-        default:
-          console.log(`Unknwon error code ${errorCode}`);
-      }
-    };
-
-    const getData = (link) => axios
-      .get(makeReqLink(link), { signal: AbortSignal.timeout(requestTimeout) })
-      .then((response) => {
-        const { feedData, postsData } = parseRSS(response.data.contents);
-        const feed = { ...feedData, id: uniqueId(), feedLink: link };
-        const posts = postsData.map((post) => ({ ...post, id: uniqueId(), feedId: feed.id }));
-        watchedState.feeds.unshift(feed);
-        watchedState.posts.unshift(...posts);
-        watchedState.form = { isValid: true, error: null };
-        watchedState.loadingProcess = { state: 'finished', error: null };
-      })
-      .catch((responseError) => {
-        const errorCode = getErrorCode(responseError);
-        handleResponseError(errorCode);
-      });
-
     elements.form.addEventListener('submit', (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
       const link = formData.get('url').trim();
-      const links = watchedState.feeds.length !== 0
-        ? watchedState.feeds.map((feed) => feed.feedLink)
-        : [];
-      watchedState.loadingProcess = { state: 'sending', error: null };
+      const links = watchedState.feeds.map((feed) => feed.feedLink);
+      watchedState.loadingProcess = { status: 'sending', error: null };
 
       validate(link, links)
         .then((error) => {
           if (error) {
-            watchedState.loadingProcess = { state: 'filling', error: null };
+            watchedState.loadingProcess = { status: 'idle', error: null };
             watchedState.form = { isValid: false, error: error.message };
             return;
           }
-          getData(link);
+          watchedState.form = { isValid: true, error: null };
+          getData(link, watchedState);
         });
     });
 
     elements.postsContainer.addEventListener('click', ({ target }) => {
-      watchedState.ui.seenPostsIds.add(target.dataset.id);
-      watchedState.ui.activeModalId = target.dataset.id;
+      if (target.hasAttribute('id')) {
+        watchedState.ui.seenPostsIds.add(target.dataset.id);
+        watchedState.ui.activeModalId = target.dataset.id;
+      }
     });
 
-    const updatePosts = (state) => {
-      const promises = state.feeds.map((feed) => axios
-        .get(makeReqLink(feed.feedLink))
-        .then((response) => parseRSS(response.data.contents))
-        .then(({ postsData }) => {
-          const feedId = feed.id;
-          const existingPostTitles = new Set(state.posts
-            .filter((post) => post.feedId === feedId)
-            .map((post) => post.title));
-          const newPosts = postsData
-            .filter(({ title }) => !existingPostTitles.has(title))
-            .map((post) => ({ ...post, feedId, id: uniqueId() }));
-          state.posts.unshift(...newPosts);
-        })
-        .catch((error) => {
-          console.log(error);
-        }));
-
-      Promise.all(promises)
-        .finally(() => {
-          setTimeout(() => updatePosts(state), newPostCheckInterval);
-        });
-    };
     updatePosts(watchedState);
   });
 };
