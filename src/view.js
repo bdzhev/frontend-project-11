@@ -193,9 +193,10 @@ const renderSuccessStatus = (elems, state, t) => {
 };
 
 const handleForm = (elems, value, t) => {
-  !(value.isValid)
-    ? renderFormError(elems, value.error, t)
-    : renderFormValid(elems);
+  if (value.isValid) {
+    renderFormError(elems, value.error, t);
+  }
+  renderFormValid(elems);
 };
 
 const handleLoadingState = (value, elems, state, t) => {
