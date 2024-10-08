@@ -140,7 +140,7 @@ const app = () => {
     });
 
     elements.postsContainer.addEventListener('click', ({ target }) => {
-      if (target.hasAttribute('id')) {
+      if (target.hasAttribute('data-id')) {
         watchedState.ui.seenPostsIds.add(target.dataset.id);
         watchedState.ui.activeModalId = target.dataset.id;
       }
