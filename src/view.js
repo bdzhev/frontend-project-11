@@ -4,9 +4,9 @@ const createPostButton = (id, t) => {
   const button = document.createElement('button');
   button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
   button.setAttribute('type', 'button');
-  button.setAttribute('data-id', id);
-  button.setAttribute('data-bs-toggle', 'modal');
-  button.setAttribute('data-bs-target', '#modal');
+  button.dataset.id = id;
+  button.dataset.bsToggle = 'modal';
+  button.dataset.bsTarget = '#modal';
   button.textContent = t('viewPostButton');
   return button;
 };
@@ -14,7 +14,7 @@ const createPostButton = (id, t) => {
 const createPostLink = (url, id, title, feedId) => {
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('data-id', id);
+  link.dataset.id = id;
   link.setAttribute('target', '_blank');
   link.setAttribute('rel', 'noopener noreferrer');
   link.setAttribute('id', feedId);
@@ -23,9 +23,9 @@ const createPostLink = (url, id, title, feedId) => {
   return link;
 };
 
-const createPostElems = (posts, t) => posts.map((post) => {
-  const postCard = document.createElement('li');
-  postCard.classList.add(
+const createPosts = (posts, t) => posts.map((postData) => {
+  const post = document.createElement('li');
+  post.classList.add(
     'list-group-item',
     'd-flex',
     'justify-content-between',
@@ -33,128 +33,16 @@ const createPostElems = (posts, t) => posts.map((post) => {
     'border-0',
     'border-end-0',
   );
-  const link = createPostLink(post.link, post.id, post.title, post.feedId);
-  const button = createPostButton(post.id, t);
-  postCard.append(link, button);
+  const link = createPostLink(postData.link, postData.id, postData.title, postData.feedId);
+  const button = createPostButton(postData.id, t);
+  post.append(link, button);
 
-  return postCard;
+  return post;
 });
 
-const clearFeedback = (elems) => {
-  const feedbackElemClasses = elems.feedback.classList;
-  if (feedbackElemClasses.contains('text-danger')) {
-    (feedbackElemClasses.remove('text-danger'));
-  } else {
-    (feedbackElemClasses.remove('text-success'));
-  }
-};
-
-const renderSeenPosts = (state) => {
-  state.ui.seenPostsIds.forEach((id) => {
-    const postLink = document.querySelector(`li a[data-id="${id}"]`);
-    if (postLink.classList.contains('fw-bold')) {
-      postLink.classList.remove('fw-bold');
-      postLink.classList.add('link-secondary', 'fw-normal');
-    }
-  });
-};
-
-const renderNewPosts = (state, t, elements) => {
-  const postUl = document.querySelector('div.posts ul');
-  if (postUl) {
-    const existingPostsIds = new Set([...elements.postsContainer.querySelectorAll('li a')]
-      .map((postElem) => postElem.dataset.id));
-    const newPostsData = state.posts
-      .filter((post) => !existingPostsIds.has(post.id));
-    const newPostElems = createPostElems(newPostsData, t);
-    postUl.prepend(...newPostElems);
-    renderSeenPosts(state);
-  }
-};
-
-const renderModal = (state, activeId) => {
-  const modalWindow = document.querySelector('.modal-dialog');
-  const activePost = state.posts.find((post) => post.id === activeId);
-  modalWindow.querySelector('.modal-title')
-    .textContent = activePost.title;
-  modalWindow.querySelector('.modal-body')
-    .textContent = activePost.description;
-};
-
-const renderErrorStatus = (error, elems, t) => {
-  const feedbackElem = elems.feedback;
-  feedbackElem.classList.add('text-danger');
-  feedbackElem.textContent = t(`loadingStates.${error}`);
-  elems.formInput.removeAttribute('readonly');
-  elems.formSubmit.removeAttribute('disabled');
-};
-
-const renderIdleStatus = (elems) => {
-  elems.formInput.removeAttribute('readonly');
-  elems.formSubmit.removeAttribute('disabled');
-};
-
-const renderFormError = (elems, error, t) => {
-  const feedbackElem = elems.feedback;
-  feedbackElem.classList.add('text-danger');
-  feedbackElem.textContent = t(`formErrors.${error}`);
-  elems.formInput.classList.add('is-invalid');
-};
-
-const renderFormValid = (elems) => {
-  if (elems.formInput.classList.contains('is-invalid')) {
-    elems.formInput.classList.remove('is-invalid');
-  }
-  const feedbackElem = elems.feedback;
-  feedbackElem.textContent = '';
-};
-
-const renderSendingStatus = (elems) => {
-  clearFeedback(elems);
-  const { feedback } = elems;
-  feedback.textContent = '';
-  elems.formInput.setAttribute('readonly', true);
-  elems.formSubmit.setAttribute('disabled', true);
-};
-
-const createFeedElem = (feed) => {
-  const feedCard = document.createElement('li');
-  feedCard.classList.add('list-group-item', 'border-0', 'border-end-0');
-  const feedCardTitle = document.createElement('h3');
-  feedCardTitle.classList.add('h6', 'm-0');
-  feedCardTitle.textContent = feed.feedTitle;
-  const feedCardDesc = document.createElement('p');
-  feedCardDesc.classList.add('m-0', 'small', 'text-black-50');
-  feedCardDesc.textContent = feed.description;
-
-  feedCard.append(feedCardTitle, feedCardDesc);
-  return feedCard;
-};
-
-const createFeeds = (state, elems, t) => {
-  const { feedsContainer } = elems;
-  feedsContainer.innerHTML = '';
-  const feedHolder = document.createElement('div');
-  feedHolder.classList.add('card', 'border-0');
-
-  const feedTitleBox = document.createElement('div');
-  feedTitleBox.classList.add('card-body');
-  const feedTitle = document.createElement('h2');
-  feedTitle.classList.add('card-title', 'h4');
-  feedTitle.textContent = t('feedsTitle');
-  feedTitleBox.append(feedTitle);
-
-  const feedsUl = document.createElement('ul');
-  feedsUl.classList.add('list-group', 'border-0', 'rounded-0');
-  const feeds = state.feeds.map(createFeedElem);
-  feedsUl.append(...feeds);
-  feedHolder.append(feedTitleBox, feedsUl);
-  return feedHolder;
-};
-
-const createPostList = (postElems, t) => {
-  const postHolder = document.createElement('div');
-  postHolder.classList.add('card', 'border-0');
+const createPostList = (posts, t) => {
+  const postList = document.createElement('div');
+  postList.classList.add('card', 'border-0');
 
   const postTitleBox = document.createElement('div');
   postTitleBox.classList.add('card-body');
@@ -167,29 +55,127 @@ const createPostList = (postElems, t) => {
   const postUl = document.createElement('ul');
   postUl.classList.add('list-group', 'border-0', 'rounded-0');
 
-  postUl.append(...postElems);
-  postHolder.append(postTitleBox, postUl);
-  return postHolder;
+  postUl.append(...posts);
+  postList.append(postTitleBox, postUl);
+  return postList;
 };
 
-const renderSuccessStatus = (elems, state, t) => {
-  const feedbackElem = elems.feedback;
-  feedbackElem.classList.add('text-success');
-  feedbackElem.textContent = t('loadingStates.success');
-  elems.formSubmit.removeAttribute('disabled');
-  const { formInput } = elems;
-  formInput.removeAttribute('readonly');
-  formInput.value = '';
+const clearFeedback = (elems) => {
+  const feedbackClasses = elems.feedback.classList;
+  feedbackClasses.remove('text-success', 'text-danger');
+};
 
-  const postsElems = createPostElems(state.posts, t);
-  const postHolder = createPostList(postsElems, t);
+const renderSeenPosts = (state) => {
+  state.ui.seenPostsIds.forEach((id) => {
+    const postLink = document.querySelector(`li a[data-id="${id}"]`);
+    if (postLink.classList.contains('fw-bold')) {
+      postLink.classList.remove('fw-bold');
+      postLink.classList.add('link-secondary', 'fw-normal');
+    }
+  });
+};
+
+const renderPosts = (state, elems, t) => {
   const { postsContainer } = elems;
   postsContainer.innerHTML = '';
-  postsContainer.append(postHolder);
+  const posts = createPosts(state.posts, t);
+  const postList = createPostList(posts, t);
+  postsContainer.append(postList);
   renderSeenPosts(state);
+};
 
-  const feedHolder = createFeeds(state, elems, t);
-  elems.feedsContainer.append(feedHolder);
+const createFeed = (feedData) => {
+  const feed = document.createElement('li');
+  feed.classList.add('list-group-item', 'border-0', 'border-end-0');
+  const feedTitle = document.createElement('h3');
+  feedTitle.classList.add('h6', 'm-0');
+  feedTitle.textContent = feedData.feedTitle;
+  const feedDesc = document.createElement('p');
+  feedDesc.classList.add('m-0', 'small', 'text-black-50');
+  feedDesc.textContent = feedData.description;
+
+  feed.append(feedTitle, feedDesc);
+  return feed;
+};
+
+const createFeedList = (state, t) => {
+  const feedList = document.createElement('div');
+  feedList.classList.add('card', 'border-0');
+
+  const feedTitleBox = document.createElement('div');
+  feedTitleBox.classList.add('card-body');
+  const feedTitle = document.createElement('h2');
+  feedTitle.classList.add('card-title', 'h4');
+  feedTitle.textContent = t('feedsTitle');
+  feedTitleBox.append(feedTitle);
+
+  const feedsUl = document.createElement('ul');
+  feedsUl.classList.add('list-group', 'border-0', 'rounded-0');
+  const feeds = state.feeds.map(createFeed);
+  feedsUl.append(...feeds);
+  feedList.append(feedTitleBox, feedsUl);
+  return feedList;
+};
+
+const renderFeeds = (state, elems, t) => {
+  const { feedsContainer } = elems;
+  feedsContainer.innerHTML = '';
+  const feedList = createFeedList(state, t);
+  feedsContainer.append(feedList);
+};
+
+const renderModal = (state, activeId) => {
+  const modalWindow = document.querySelector('.modal-dialog');
+  const activePost = state.posts.find((post) => post.id === activeId);
+  modalWindow.querySelector('.modal-title')
+    .textContent = activePost.title;
+  modalWindow.querySelector('.modal-body')
+    .textContent = activePost.description;
+};
+
+const activateForm = (elems) => {
+  const { formInput, formSubmit } = elems;
+  formInput.removeAttribute('readonly');
+  formInput.removeAttribute('disabled');
+  formSubmit.removeAttribute('disabled');
+};
+
+const renderErrorStatus = (error, elems, t) => {
+  const { feedback } = elems;
+  feedback.classList.add('text-danger');
+  feedback.textContent = t(`loadingStates.${error}`);
+  activateForm(elems);
+};
+
+const renderFormError = (elems, error, t) => {
+  const { feedback } = elems;
+  feedback.classList.add('text-danger');
+  feedback.textContent = t(`formErrors.${error}`);
+  elems.formInput.classList.add('is-invalid');
+};
+
+const renderFormValid = (elems) => {
+  const formInputClasses = elems.formInput.classList;
+  formInputClasses.remove('is-invalid');
+  const { feedback } = elems;
+  feedback.textContent = '';
+};
+
+const renderSendingStatus = (elems) => {
+  clearFeedback(elems);
+  const { feedback } = elems;
+  feedback.textContent = '';
+  const { formInput } = elems;
+  formInput.setAttribute('readonly', true);
+  formInput.setAttribute('disabled', true);
+};
+
+const renderSuccessStatus = (elems, t) => {
+  const { feedback, formInput } = elems;
+  feedback.classList.add('text-success');
+  feedback.textContent = t('loadingStates.success');
+  activateForm(elems);
+  formInput.value = '';
 };
 
 const handleForm = (elems, value, t) => {
@@ -200,16 +186,16 @@ const handleForm = (elems, value, t) => {
   }
 };
 
-const handleLoadingState = (value, elems, state, t) => {
+const handleLoadingState = (value, elems, t) => {
   switch (value.status) {
     case 'sending':
       renderSendingStatus(elems);
       break;
     case 'success':
-      renderSuccessStatus(elems, state, t);
+      renderSuccessStatus(elems, t);
       break;
     case 'idle':
-      renderIdleStatus(elems);
+      activateForm(elems);
       break;
     case 'error':
       renderErrorStatus(value.error, elems, t);
@@ -219,20 +205,21 @@ const handleLoadingState = (value, elems, state, t) => {
   }
 };
 
-const watch = (state, elements, { t }) => {
+const watch = (state, elems, { t }) => {
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'form':
-        handleForm(elements, value, t);
+        handleForm(elems, value, t);
         break;
       case 'loadingProcess':
-        handleLoadingState(value, elements, state, t);
+        handleLoadingState(value, elems, t);
+        break;
+      case 'feeds':
+        renderFeeds(state, elems, t);
         break;
       case 'posts':
-        renderNewPosts(state, t, elements);
-        break;
       case 'ui.seenPostsIds':
-        renderSeenPosts(state);
+        renderPosts(state, elems, t);
         break;
       case 'ui.activeModalId':
         renderModal(state, value);
