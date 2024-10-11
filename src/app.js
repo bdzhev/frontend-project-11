@@ -30,26 +30,29 @@ const getErrorCode = (error) => {
 
 const makeAbortSignal = (timeoutValue) => ({ signal: AbortSignal.timeout(timeoutValue) });
 
-const getData = (link, state) => axios
-  .get(makeReqLink(link), makeAbortSignal(requestTimeout))
-  .then((response) => {
-    const { feedData, postsData } = parseRSS(response.data.contents);
-    const feed = { ...feedData, id: uniqueId(), feedLink: link };
-    const posts = postsData.map((post) => ({ ...post, id: uniqueId(), feedId: feed.id }));
-    // eslint-disable-next-line no-param-reassign
-    state.feeds = [feed, ...state.feeds];
-    // eslint-disable-next-line no-param-reassign
-    state.posts = [...posts, ...state.posts];
-    // eslint-disable-next-line no-param-reassign
-    state.loadingProcess = { status: 'success', error: null };
-  })
-  .catch((responseError) => {
-    // eslint-disable-next-line no-param-reassign
-    state.loadingProcess = {
-      status: 'error',
-      error: getErrorCode(responseError),
-    };
-  });
+const getData = (link, state) => {
+  // eslint-disable-next-line no-param-reassign
+  state.loadingProcess = { status: 'sending', error: null };
+  axios.get(makeReqLink(link), makeAbortSignal(requestTimeout))
+    .then((response) => {
+      const { feedData, postsData } = parseRSS(response.data.contents);
+      const feed = { ...feedData, id: uniqueId(), feedLink: link };
+      const posts = postsData.map((post) => ({ ...post, id: uniqueId(), feedId: feed.id }));
+      // eslint-disable-next-line no-param-reassign
+      state.feeds = [feed, ...state.feeds];
+      // eslint-disable-next-line no-param-reassign
+      state.posts = [...posts, ...state.posts];
+      // eslint-disable-next-line no-param-reassign
+      state.loadingProcess = { status: 'success', error: null };
+    })
+    .catch((responseError) => {
+      // eslint-disable-next-line no-param-reassign
+      state.loadingProcess = {
+        status: 'error',
+        error: getErrorCode(responseError),
+      };
+    });
+};
 
 const updatePosts = (state) => {
   const promises = state.feeds.map((feed) => axios
@@ -125,12 +128,10 @@ const app = () => {
       const formData = new FormData(e.target);
       const link = formData.get('url').trim();
       const links = watchedState.feeds.map((feed) => feed.feedLink);
-      watchedState.loadingProcess = { status: 'sending', error: null };
 
       validate(link, links)
         .then((error) => {
           if (error) {
-            watchedState.loadingProcess = { status: 'idle', error: null };
             watchedState.form = { isValid: false, error: error.message };
             return;
           }
@@ -140,9 +141,10 @@ const app = () => {
     });
 
     elements.postsContainer.addEventListener('click', ({ target }) => {
-      if (target.hasAttribute('data-id')) {
-        watchedState.ui.seenPostsIds.add(target.dataset.id);
-        watchedState.ui.activeModalId = target.dataset.id;
+      const { id } = target.dataset;
+      if (id) {
+        watchedState.ui.seenPostsIds.add(id);
+        watchedState.ui.activeModalId = id;
       }
     });
 
