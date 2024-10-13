@@ -60,8 +60,8 @@ const createPostList = (posts, t) => {
   return postList;
 };
 
-const clearFeedback = (elems) => {
-  const feedbackClasses = elems.feedback.classList;
+const clearFeedback = (elements) => {
+  const feedbackClasses = elements.feedback.classList;
   feedbackClasses.remove('text-success', 'text-danger');
 };
 
@@ -75,8 +75,8 @@ const renderSeenPosts = (state) => {
   });
 };
 
-const renderPosts = (state, elems, t) => {
-  const { postsContainer } = elems;
+const renderPosts = (state, elements, t) => {
+  const { postsContainer } = elements;
   postsContainer.innerHTML = '';
   const posts = createPosts(state.posts, t);
   const postList = createPostList(posts, t);
@@ -117,8 +117,8 @@ const createFeedList = (state, t) => {
   return feedList;
 };
 
-const renderFeeds = (state, elems, t) => {
-  const { feedsContainer } = elems;
+const renderFeeds = (state, elements, t) => {
+  const { feedsContainer } = elements;
   feedsContainer.innerHTML = '';
   const feedList = createFeedList(state, t);
   feedsContainer.append(feedList);
@@ -133,93 +133,93 @@ const renderModal = (state, activeId) => {
     .textContent = activePost.description;
 };
 
-const activateForm = (elems) => {
-  const { formInput, formSubmit } = elems;
+const activateForm = (elements) => {
+  const { formInput, formSubmit } = elements;
   formInput.removeAttribute('readonly');
   formInput.removeAttribute('disabled');
   formSubmit.removeAttribute('disabled');
 };
 
-const renderErrorStatus = (error, elems, t) => {
-  const { feedback } = elems;
+const renderErrorStatus = (error, elements, t) => {
+  const { feedback } = elements;
   feedback.classList.add('text-danger');
   feedback.textContent = t(`loadingStates.${error}`);
-  activateForm(elems);
+  activateForm(elements);
 };
 
-const renderFormError = (elems, error, t) => {
-  const { feedback } = elems;
+const renderFormError = (elements, error, t) => {
+  const { feedback } = elements;
   feedback.classList.add('text-danger');
   feedback.textContent = t(`formErrors.${error}`);
-  elems.formInput.classList.add('is-invalid');
+  elements.formInput.classList.add('is-invalid');
 };
 
-const renderFormValid = (elems) => {
-  const formInputClasses = elems.formInput.classList;
+const renderFormValid = (elements) => {
+  const formInputClasses = elements.formInput.classList;
   formInputClasses.remove('is-invalid');
-  const { feedback } = elems;
+  const { feedback } = elements;
   feedback.textContent = '';
 };
 
-const renderSendingStatus = (elems) => {
-  clearFeedback(elems);
-  const { feedback } = elems;
+const renderSendingStatus = (elements) => {
+  clearFeedback(elements);
+  const { feedback } = elements;
   feedback.textContent = '';
-  const { formInput } = elems;
+  const { formInput } = elements;
   formInput.setAttribute('readonly', true);
   formInput.setAttribute('disabled', true);
 };
 
-const renderSuccessStatus = (elems, t) => {
-  const { feedback, formInput } = elems;
+const renderSuccessStatus = (elements, t) => {
+  const { feedback, formInput } = elements;
   feedback.classList.add('text-success');
   feedback.textContent = t('loadingStates.success');
-  activateForm(elems);
+  activateForm(elements);
   formInput.value = '';
 };
 
-const handleForm = (elems, value, t) => {
+const handleForm = (elements, value, t) => {
   if (value.isValid) {
-    renderFormValid(elems);
+    renderFormValid(elements);
   } else {
-    renderFormError(elems, value.error, t);
+    renderFormError(elements, value.error, t);
   }
 };
 
-const handleLoadingState = (value, elems, t) => {
+const handleLoadingState = (value, elements, t) => {
   switch (value.status) {
     case 'sending':
-      renderSendingStatus(elems);
+      renderSendingStatus(elements);
       break;
     case 'success':
-      renderSuccessStatus(elems, t);
+      renderSuccessStatus(elements, t);
       break;
     case 'idle':
-      activateForm(elems);
+      activateForm(elements);
       break;
     case 'error':
-      renderErrorStatus(value.error, elems, t);
+      renderErrorStatus(value.error, elements, t);
       break;
     default:
       break;
   }
 };
 
-const watch = (state, elems, { t }) => {
+const watch = (state, elements, { t }) => {
   const watchedState = onChange(state, (path, value) => {
     switch (path) {
       case 'form':
-        handleForm(elems, value, t);
+        handleForm(elements, value, t);
         break;
       case 'loadingProcess':
-        handleLoadingState(value, elems, t);
+        handleLoadingState(value, elements, t);
         break;
       case 'feeds':
-        renderFeeds(state, elems, t);
+        renderFeeds(state, elements, t);
         break;
       case 'posts':
       case 'ui.seenPostsIds':
-        renderPosts(state, elems, t);
+        renderPosts(state, elements, t);
         break;
       case 'ui.activeModalId':
         renderModal(state, value);
